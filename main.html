@@ -11,70 +11,34 @@
     body { background-color: var(--dark); color: var(--text); height: 100vh; display: flex; justify-content: center; align-items: center; }
     
     .pairing-container {
-      background: var(--panel);
-      padding: 40px;
-      border-radius: 12px;
-      text-align: center;
-      box-shadow: 0 4px 30px rgba(0,0,0,0.3);
-      max-width: 400px;
-      width: 100%;
+      background: var(--panel); padding: 40px; border-radius: 12px; text-align: center;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.3); max-width: 400px; width: 100%;
     }
-
     h2 { color: var(--primary); margin-bottom: 10px; }
     p { color: #8696a0; margin-bottom: 30px; font-size: 14px; }
-
-    .input-box {
-      display: flex;
-      background: #2a3942;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      overflow: hidden;
-    }
-
-    input {
-      flex: 1; border: none; padding: 14px;
-      background: transparent; color: white;
-      font-size: 16px; outline: none;
-    }
-
-    button {
-      width: 100%; padding: 14px;
-      border: none; background: var(--primary);
-      color: white; font-weight: 600;
-      border-radius: 8px; cursor: pointer;
-      font-size: 15px; transition: 0.2s;
-    }
-    button:hover { background: #06cf9c; }
+    .input-box { display: flex; background: #2a3942; border-radius: 8px; margin-bottom: 20px; overflow: hidden; }
+    input { flex: 1; border: none; padding: 14px; background: transparent; color: white; font-size: 16px; outline: none; }
+    button { width: 100%; padding: 14px; border: none; background: var(--primary); color: white; font-weight: 600; border-radius: 8px; cursor: pointer; font-size: 15px; }
     button:disabled { background: #2a3942; cursor: not-allowed; }
-
-    .code-display {
-      font-size: 32px; letter-spacing: 5px;
-      color: var(--primary); margin: 20px 0;
-      font-weight: 600; user-select: all;
-      display: none;
-    }
-    
+    .code-display { font-size: 32px; letter-spacing: 5px; color: var(--primary); margin: 20px 0; font-weight: 600; user-select: all; display: none; }
     .status-msg { margin-top: 15px; font-size: 13px; color: #8696a0; }
-    .error { color: #dc3545; }
   </style>
 </head>
 <body>
 
 <div class="pairing-container">
   <h2>WhatsApp Web</h2>
-  <p>Use WhatsApp on your computer. Enter your number to pair.</p>
+  <p>Enter your number to pair your device.</p>
 
   <div class="input-box">
     <input type="number" id="phoneInput" placeholder="Enter Phone Number (e.g. 26371...)">
   </div>
 
-  <div id="initialBtn">
-    <button onclick="requestCode()">Request Pairing Code</button>
-  </div>
+  <div id="initialBtn"><button onclick="requestCode()">Request Pairing Code</button></div>
 
   <div id="pairingUI" style="display:none;">
     <div class="code-display" id="codeText">XXXX-XXXX</div>
-    <p>Enter this code in your WhatsApp mobile app:<br><small>Settings > Linked Devices > Link with phone number</small></p>
+    <p>Enter this code in your WhatsApp mobile app.</p>
     <div class="status-msg" id="statusMsg">Waiting for connection...</div>
   </div>
 </div>
@@ -86,7 +50,6 @@
     const input = document.getElementById('phoneInput');
     const btn = document.getElementById('initialBtn');
     const ui = document.getElementById('pairingUI');
-    const status = document.getElementById('statusMsg');
     
     phoneNumber = input.value.replace(/[^0-9]/g, '');
     if(!phoneNumber) return alert('Please enter a number');
@@ -98,19 +61,14 @@
       const data = await res.json();
       
       if(data.code) {
-        // Show Code
         btn.style.display = 'none';
         ui.style.display = 'block';
         document.getElementById('codeText').innerText = data.code;
-        
-        // Start polling
         checkConnection();
       } else if (data.status === 'connected') {
-        // Already connected
         window.location.href = `/web.html?number=${phoneNumber}`;
       } else {
-        status.innerText = "Error: " + (data.error || "Unknown");
-        status.classList.add('error');
+        alert("Error: " + (data.error || "Unknown"));
       }
     } catch(e) {
       alert("Connection error");
@@ -119,26 +77,19 @@
   }
 
   async function checkConnection() {
-    const status = document.getElementById('statusMsg');
     try {
       const res = await fetch(`/code/check?number=${phoneNumber}`);
       const data = await res.json();
-      
       if(data.connected) {
-        status.innerText = "Connected! Redirecting...";
-        setTimeout(() => {
-          window.location.href = `/web.html?number=${phoneNumber}`;
-        }, 1000);
+        document.getElementById('statusMsg').innerText = "Connected! Redirecting...";
+        setTimeout(() => window.location.href = `/web.html?number=${phoneNumber}`, 1000);
       } else {
-        // Retry after 3 seconds
         setTimeout(checkConnection, 3000);
       }
     } catch(e) {
-      console.log("Polling error, retrying...");
       setTimeout(checkConnection, 3000);
     }
   }
 </script>
-
 </body>
 </html>
