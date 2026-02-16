@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Web</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    :root {
+      --primary: #00a884;
+      --secondary: #008069;
+      --dark: #111b21;
+      --panel: #222d34;
+      --header: #202c33;
+      --text: #e9edef;
+      --text-secondary: #8696a0;
+      --search: #2a3942;
+      --divider: rgba(134, 150, 160, 0.15);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: var(--dark); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
+
+    /* Layout */
+    .sidebar { width: 30%; min-width: 340px; background: var(--panel); border-right: 1px solid var(--divider); display: flex; flex-direction: column; }
+    .main { flex: 1; display: flex; flex-direction: column; background: url('https://web.whatsapp.com/img/bg-chat-tile_9e8a259308bae1717067ad6637cc7ac3.png') repeat; background-color: #0b141a; }
+
+    /* Sidebar Header */
+    .side-header { background: var(--header); padding: 10px 16px; height: 59px; display: flex; justify-content: space-between; align-items: center; }
+    .profile-pic { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; object-fit: cover; }
+    .icons i { margin-left: 24px; color: var(--text-secondary); cursor: pointer; font-size: 20px; }
+
+    /* Search */
+    .search-bar { padding: 8px 12px; background: var(--panel); }
+    .search-input { width: 100%; padding: 10px 16px; border-radius: 8px; border: none; background: var(--search); color: var(--text); outline: none; }
+
+    /* Chat List */
+    .chat-list { flex: 1; overflow-y: auto; }
+    .chat-item { display: flex; align-items: center; padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--divider); }
+    .chat-item:hover { background: var(--search); }
+    .chat-item.active { background: #2a3942; }
+    .chat-info { margin-left: 15px; flex: 1; }
+    .chat-name { font-size: 16px; }
+    .chat-msg { font-size: 14px; color: var(--text-secondary); margin-top: 4px; }
+    .chat-meta { text-align: right; }
+    .chat-time { font-size: 12px; color: var(--text-secondary); }
+
+    /* Main Header */
+    .main-header { background: var(--header); padding: 10px 16px; height: 59px; display: flex; align-items: center; border-left: 1px solid var(--divider); }
+    .main-header .chat-info { margin-left: 15px; }
+    .main-header .icons { margin-left: auto; }
+
+    /* Messages */
+    .messages { flex: 1; padding: 20px 60px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    .msg { max-width: 65%; padding: 6px 7px 8px 9px; border-radius: 7.5px; position: relative; box-shadow: 0 1px 0.5px rgba(11,20,26,.13); }
+    .msg.sent { background: var(--secondary); align-self: flex-end; }
+    .msg.recv { background: var(--panel); align-self: flex-start; }
+    .msg-text { font-size: 14.2px; line-height: 19px; white-space: pre-wrap; }
+    .msg-time { float: right; margin-left: 12px; font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 4px; }
+
+    /* Footer Input */
+    .input-footer { background: var(--header); padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
+    .input-footer i { color: var(--text-secondary); font-size: 22px; cursor: pointer; }
+    .msg-input { flex: 1; padding: 9px 12px; border-radius: 8px; border: none; background: var(--search); color: white; outline: none; font-size: 15px; }
+
+    /* SplashScreen */
+    .splash { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--dark); border-left: 1px solid var(--divider); }
+    .splash img { width: 320px; opacity: 0.6; margin-bottom: 40px; }
+    .splash h1 { font-weight: 300; font-size: 32px; margin-bottom: 16px; }
+    .splash p { color: var(--text-secondary); font-size: 14px; text-align: center; width: 500px; max-width: 90%; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+  </style>
+</head>
+<body>
+
+  <!-- Left Sidebar -->
+  <div class="sidebar">
+    <div class="side-header">
+      <img id="myPic" src="https://files.catbox.moe/f9gwsx.jpg" class="profile-pic" alt="Me">
+      <div class="icons">
+        <i class="fas fa-users"></i>
+        <i class="fas fa-comment-dots"></i>
+        <i class="fas fa-ellipsis-v"></i>
+      </div>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" class="search-input" placeholder="Search or start new chat">
+    </div>
+
+    <div class="chat-list" id="chatList">
+      <div class="chat-item active">
+        <img src="https://files.catbox.moe/f9gwsx.jpg" class="profile-pic" style="width:49px; height:49px;">
+        <div class="chat-info">
+          <div class="chat-name">System Bot</div>
+          <div class="chat-msg">Session paired successfully.</div>
+        </div>
+        <div class="chat-meta">
+          <div class="chat-time">Now</div>
+        </div>
+      </div>
+      <!-- Add more dummy chats if you want -->
+    </div>
+  </div>
+
+  <!-- Main Chat Area -->
+  <div class="main">
+    
+    <!-- Splash / Welcome Screen (Visible by default) -->
+    <div class="splash" id="splashScreen">
+      <img src="https://web.whatsapp.com/img/intro-connection-light_c98cc75f2aa905314d74571a9d4f9c30.jpg" alt="Intro">
+      <h1>WhatsApp Web</h1>
+      <p>Send and receive messages without keeping your phone online.<br>Use WhatsApp on up to 4 linked devices and 1 phone at the same time.</p>
+    </div>
+
+    <!-- Chat View (Hidden by default) -->
+    <div id="chatView" style="display:none; height:100%; display:flex; flex-direction:column;">
+      
+      <div class="main-header">
+        <img src="https://files.catbox.moe/f9gwsx.jpg" class="profile-pic" style="width:40px; height:40px;">
+        <div class="chat-info">
+          <div class="chat-name">System Bot</div>
+          <div style="font-size:13px; color:var(--text-secondary)">Online</div>
+        </div>
+        <div class="icons">
+          <i class="fas fa-video"></i>
+          <i class="fas fa-phone"></i>
+          <i class="fas fa-search"></i>
+          <i class="fas fa-ellipsis-v"></i>
+        </div>
+      </div>
+
+      <div class="messages" id="msgArea">
+        <!-- System Message -->
+        <div class="msg recv">
+          <div class="msg-text">✅ Your device is now linked successfully.
+            <span class="msg-time">Now</span>
+          </div>
+        </div>
+        <div class="msg recv">
+          <div class="msg-text">Your session is stored securely. You can now close this tab or continue chatting (if enabled).
+            <span class="msg-time">Now</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-footer">
+        <i class="far fa-smile"></i>
+        <i class="fas fa-paperclip"></i>
+        <input type="text" class="msg-input" placeholder="Type a message">
+        <i class="fas fa-microphone"></i>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // 1. Get number from URL
+    const params = new URLSearchParams(window.location.search);
+    const number = params.get('number');
+
+    if(!number) {
+      window.location.href = '/';
+    }
+
+    // 2. Load User Data
+    async function loadUser() {
+      try {
+        const res = await fetch(`/code/me?number=${number}`);
+        const data = await res.json();
+
+        if(data.picture) {
+          document.getElementById('myPic').src = data.picture;
+          // Update sidebar profile
+        }
+        
+        // Hide splash, show chat
+        document.getElementById('splashScreen').style.display = 'none';
+        document.getElementById('chatView').style.display = 'flex';
+
+      } catch(e) {
+        console.error("Failed to load user, might not be connected");
+        // Optional: Redirect back if not connected
+        // window.location.href = '/';
+      }
+    }
+
+    // Simulate loading time
+    setTimeout(loadUser, 1000);
+
+    // 3. Listen for Enter key in input (Visual only)
+    document.querySelector('.msg-input').addEventListener('keyup', function(e) {
+      if(e.key === 'Enter') {
+        const text = this.value.trim();
+        if(!text) return;
+
+        const msgArea = document.getElementById('msgArea');
+        const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'msg sent';
+        msgDiv.innerHTML = `<div class="msg-text">${text}<span class="msg-time">${time}</span></div>`;
+        
+        msgArea.appendChild(msgDiv);
+        msgArea.scrollTop = msgArea.scrollHeight;
+        this.value = '';
+
+        // Simulate reply (optional)
+        setTimeout(() => {
+           const reply = document.createElement('div');
+           reply.className = 'msg recv';
+           reply.innerHTML = `<div class="msg-text">This is a visual demo. Bot functionality has been removed.<span class="msg-time">${time}</span></div>`;
+           msgArea.appendChild(reply);
+           msgArea.scrollTop = msgArea.scrollHeight;
+        }, 1000);
+      }
+    });
+  </script>
+</body>
+</html>
