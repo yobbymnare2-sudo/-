@@ -1,0 +1,21 @@
+{
+    "name": "free-sc-mini-web",
+    "description": "WhatsApp Web Clone - Full-featured web interface for WhatsApp with pairing code support",
+    "logo": "https://files.catbox.moe/sb24ud.jpg",
+    "repository": "https://github.com/XdKing2/free-sc-mini",
+    
+    "keywords": [
+    "whatsapp-web","whatsapp","pairing-code","web-client","malvin-xd","XdKing2"
+    ],
+    
+    "success_url": "/", 
+    "buildpacks": [{ "url": "https://github.com/heroku/heroku-buildpack-nodejs#latest" } ],
+    "env": {      
+      "PORT": {
+        "description": "Port for web app. 4000, 5000, 3000... any!",
+        "value": "5000",
+        "required": false 
+      }
+    }   
+
+}
