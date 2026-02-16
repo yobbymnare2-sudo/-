@@ -69,7 +69,7 @@ async function startSession(number, res, isReconnect = false) {
   const sanitizedNumber = number.replace(/[^0-9]/g, '');
   const sessionPath = path.join(os.tmpdir(), `session_${sanitizedNumber}`);
 
-  // Load existing session from Mongo
+  // Load existing session
   try {
     const mongoDoc = await loadCredsFromMongo(sanitizedNumber);
     if (mongoDoc && mongoDoc.creds) {
@@ -106,10 +106,6 @@ async function startSession(number, res, isReconnect = false) {
       if (connection === 'open') {
         console.log(`✅ Session ${sanitizedNumber} connected`);
         activeSockets.set(sanitizedNumber, socket);
-        
-        // If this was a fresh pairing, send a welcome message
-        const userJid = jidNormalizedUser(socket.user.id);
-        await socket.sendMessage(userJid, { text: '✅ Connection Successful! Your WhatsApp Web session is now active.' });
       }
 
       if (connection === 'close') {
@@ -136,7 +132,6 @@ async function startSession(number, res, isReconnect = false) {
         return res.send({ status: 'pairing', code: code });
       }
     } else {
-      // Already registered
       activeSockets.set(sanitizedNumber, socket);
       if (!res.headersSent) {
         return res.send({ status: 'connected' });
@@ -158,34 +153,17 @@ router.get('/', async (req, res) => {
   await startSession(number, res);
 });
 
-// 2. Check Status (Polling from Frontend)
+// 2. Check Status
 router.get('/check', async (req, res) => {
   const { number } = req.query;
   const sanitized = number.replace(/[^0-9]/g, '');
-  
-  // Check if socket is active
   if (activeSockets.has(sanitized)) {
-    const sock = activeSockets.get(sanitized);
-    const user = sock.user || {};
-    return res.send({ 
-      connected: true, 
-      name: user.name || user.notify || 'User',
-      number: user.id ? user.id.split(':')[0] : sanitized
-    });
+    return res.send({ connected: true });
   }
-  
-  // Check if we have creds in DB but socket is currently down (try to reconnect)
-  const creds = await loadCredsFromMongo(sanitized);
-  if (creds) {
-     // Trigger reconnection in background
-     startSession(sanitized, { headersSent: true, send:()=>{} }, true);
-     return res.send({ connected: false, hasSession: true });
-  }
-
   res.send({ connected: false });
 });
 
-// 3. Get User Info (for Dashboard Header)
+// 3. Get User Info
 router.get('/me', async (req, res) => {
   const { number } = req.query;
   const sanitized = number.replace(/[^0-9]/g, '');
@@ -202,6 +180,67 @@ router.get('/me', async (req, res) => {
     });
   }
   res.status(404).send({ error: 'Not connected' });
+});
+
+// 4. Get Groups
+router.get('/get-groups', async (req, res) => {
+  const { number } = req.query;
+  const sanitized = number.replace(/[^0-9]/g, '');
+  
+  if (activeSockets.has(sanitized)) {
+    const sock = activeSockets.get(sanitized);
+    try {
+      const groups = await sock.groupFetchAllParticipating();
+      const formatted = Object.values(groups).map(g => ({
+        id: g.id,
+        name: g.subject,
+        size: g.participants.length,
+        creation: g.creation
+      }));
+      res.send({ status: 'success', groups: formatted });
+    } catch(e) {
+      res.status(500).send({ error: 'Failed to fetch groups' });
+    }
+  } else {
+    res.status(400).send({ error: 'Not connected' });
+  }
+});
+
+// 5. Group Action (Add Admin, Add Member, Leave)
+router.post('/group-action', async (req, res) => {
+  const { number, action, groupId, targetNumbers } = req.body;
+  const sanitized = number.replace(/[^0-9]/g, '');
+  
+  if (!activeSockets.has(sanitized)) {
+    return res.status(400).send({ error: 'Not connected' });
+  }
+
+  const sock = activeSockets.get(sanitized);
+  
+  try {
+    // Format numbers to JID
+    const jids = targetNumbers.map(n => n.replace(/[^0-9]/g, '') + '@s.whatsapp.net');
+
+    if (action === 'promote') {
+      await sock.groupParticipantsUpdate(groupId, jids, 'promote');
+      res.send({ status: 'success', message: 'Promoted to admin' });
+    } 
+    else if (action === 'add') {
+      // Note: Adding members often fails if privacy settings are strict
+      const result = await sock.groupParticipantsUpdate(groupId, jids, 'add');
+      res.send({ status: 'success', result });
+    } 
+    else if (action === 'leave') {
+      await sock.groupLeave(groupId);
+      res.send({ status: 'success', message: 'Left the group' });
+    } 
+    else {
+      res.status(400).send({ error: 'Invalid action' });
+    }
+  } catch (e) {
+    console.error('Group Action Error:', e);
+    res.status(500).send({ error: e.message || 'Action failed' });
+  }
 });
 
 module.exports = router;
